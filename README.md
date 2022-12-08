@@ -1,7 +1,7 @@
 # Cluster3CodeChallenge3.W22MTW.mwackowski
 
-# Coding Challenge 11-30
-# not sure if all the steps have been implemented, but the tests pass ;)
+Coding Challenge 11-30
+not sure if all the steps have been implemented, but the tests pass ;)
 - [x] Change Cw721Deposits to store a cw20 contract address and ask price
 - [x] When depositing NFT store the cw20 contract address and ask price
 - [x] Add a Purchase Cw20 HookMsg that takes in the Cw721 contract and `token_id`
