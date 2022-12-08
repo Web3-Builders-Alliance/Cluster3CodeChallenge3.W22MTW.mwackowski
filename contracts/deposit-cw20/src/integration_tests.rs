@@ -226,8 +226,9 @@ mod tests {
 
     #[test]
     fn mint_then_deposit_nft_then_withdraw_nft_back_to_owner() {
-        let (mut app, deposit_id, _cw20_id, cw721_id) = store_code();
+        let (mut app, deposit_id, cw20_id, cw721_id) = store_code();
         let deposit_contract = deposit_instantiate(&mut app, deposit_id);
+        let cw20_contract = cw_20_instantiate(&mut app, cw20_id);
         let cw721_contract = cw721_instantiate(&mut app, cw721_id, "NFT".to_string(), "NFT".to_string(), USER.to_string());
 
         //mint NFT to User
@@ -241,8 +242,9 @@ mod tests {
         assert_eq!(owner.owner, USER.to_string());
         println!("{:?}", owner);
 
+        let ask_price = 100;
         //deposit NFT to Deposit Contract
-        let hook_msg = Cw721HookMsg::Deposit { };
+        let hook_msg = Cw721HookMsg::Deposit { cw20_address: cw20_contract.addr().into(), ask_price: ask_price};
         let msg = nft::contract::ExecuteMsg::SendNft { contract: deposit_contract.addr().to_string(), token_id: "0".to_string(), msg: to_binary(&hook_msg).unwrap() };
         let cosmos_msg = cw721_contract.call(msg).unwrap();
         app.execute(Addr::unchecked(USER), cosmos_msg).unwrap();

@@ -17,7 +17,10 @@ where
     fn execute_withdraw(&self, deps: DepsMut, info: MessageInfo, amount:u128, denom:String) -> Result<Response<C>, Self::Err>;
     fn execute_cw20_deposit(&self, deps: DepsMut, env:Env, info: MessageInfo, owner:String, amount:Uint128) -> Result<Response<C>, Self::Err>;
     fn execute_cw20_withdraw(&self, deps: DepsMut, env: Env, info: MessageInfo, contract:String, amount: Uint128) -> Result<Response<C>, Self::Err>;
-    fn execute_cw721_deposit(&self, deps: DepsMut, env:Env, info: MessageInfo, owner:String, token_id:String) -> Result<Response<C>, Self::Err>;
+    fn execute_cw721_deposit(
+        &self, deps: DepsMut, env:Env, info: MessageInfo, owner:String, token_id:String, cw20_address: String, ask_price: u128) -> Result<Response<C>, Self::Err>;
+    fn execute_cw721_purchase(
+            &self, deps: DepsMut, env:Env, info: MessageInfo, owner:String, amount: Uint128, token_id: String, nft_contract_address: String) -> Result<Response<C>, Self::Err>;
     fn execute_cw721_withdraw(&self, deps: DepsMut, env:Env, info: MessageInfo, contract:String, token_id: String) -> Result<Response<C>, Self::Err>;
 }
 

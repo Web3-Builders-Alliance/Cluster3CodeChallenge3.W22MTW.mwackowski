@@ -43,7 +43,9 @@ pub struct Deposits {
 pub struct Cw721Deposits {
     pub owner: String,
     pub contract:String,
-    pub token_id:String
+    pub token_id:String,
+    pub cw20_address: String,
+    pub ask_price: u128
 }
 
 pub struct Cw20DepositIndexes<'a> {

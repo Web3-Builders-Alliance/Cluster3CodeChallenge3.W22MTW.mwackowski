@@ -218,6 +218,8 @@ where
         info: MessageInfo,
         owner: String,
         token_id: String,
+        cw20_address: String,
+        ask_price: u128
     ) -> Result<Response<C>, ContractError> {
         let cw721_contract_address = info.sender.clone().into_string();
 
@@ -225,6 +227,8 @@ where
             owner: owner.clone(),
             contract: info.sender.into_string(),
             token_id: token_id.clone(),
+            cw20_address: cw20_address.clone() ,
+            ask_price: ask_price
         };
         self.cw721_deposits
             .save(
@@ -238,9 +242,56 @@ where
         Ok(Response::new()
             .add_attribute("execute", "cw721_deposit")
             .add_attribute("owner", owner)
+            .add_attribute("cw20_address", cw20_address)
+            .add_attribute("ask_price", ask_price.to_string())
             .add_attribute("contract", cw721_contract_address.to_string()))
     }
 
+    fn execute_cw721_purchase(
+        &self,
+        deps: DepsMut,
+        env: Env,
+        info: MessageInfo,
+        owner: String,
+        amount: Uint128,
+        token_id: String,
+        nft_contract_address: String
+    ) -> Result<Response<C>, ContractError> {
+        let cw20_contract_address = info.sender.clone().into_string();
+
+        let nft = 
+            self.cw721_deposits.load(deps.storage, (&nft_contract_address, &token_id))?;
+            
+        if Uint128::from(nft.ask_price) != amount {
+            return Err(ContractError::InsufficientPayment { ask_price: Uint128::from(nft.ask_price)})
+        }
+
+        self.cw721_deposits
+            .remove(deps.storage, (&nft_contract_address, &token_id), env.block.height)
+            .unwrap();
+
+        let exe_msg = nft::contract::ExecuteMsg::TransferNft {
+            recipient: owner.clone(),
+            token_id: token_id.clone(),
+        };
+
+        let msg = WasmMsg::Execute {
+            contract_addr: nft_contract_address.clone(),
+            msg: to_binary(&exe_msg)?,
+            funds: vec![],
+        };
+
+        Ok(Response::new()
+            .add_attribute("execute", "cw721_deposit")
+            .add_attribute("owner", owner)
+            .add_attribute("cw20_address", cw20_contract_address.to_string())
+            .add_attribute("amount", amount.to_string())
+            .add_attribute("contract", nft_contract_address.to_string())
+            .add_attribute("token id", token_id)
+            .add_message(msg)
+        )
+
+    }
     fn execute_cw721_withdraw(
         &self,
         deps: DepsMut,
@@ -251,7 +302,7 @@ where
     ) -> Result<Response<C>, ContractError> {
         let owner = info.sender.clone().into_string();
 
-        let _deposit = self
+        let _nft = self
             .cw721_deposits
             .load(deps.storage, (&contract, &token_id))
             .unwrap();
@@ -380,6 +431,9 @@ pub fn receive_cw20(
         Ok(Cw20HookMsg::Deposit {}) => {
             contract.execute_cw20_deposit(deps, env, info, cw20_msg.sender, cw20_msg.amount)
         }
+        Ok(Cw20HookMsg::PurchaseNFT { token_id, nft_contract_address }) => {
+            contract.execute_cw721_purchase(deps, env, info, cw20_msg.sender, cw20_msg.amount, token_id, nft_contract_address)
+        }
         _ => Err(ContractError::CustomError {
             val: "Invalid Cw20HookMsg".to_string(),
         }),
@@ -394,8 +448,10 @@ pub fn receive_cw721(
     cw721_msg: Cw721ReceiveMsg,
 ) -> Result<Response, ContractError> {
     match from_binary(&cw721_msg.msg) {
-        Ok(Cw721HookMsg::Deposit {}) => {
-            contract.execute_cw721_deposit(deps, env, info, cw721_msg.sender, cw721_msg.token_id)
+        Ok(Cw721HookMsg::Deposit {cw20_address, ask_price}) => {
+            contract.execute_cw721_deposit(deps, env, info, cw721_msg.sender, cw721_msg.token_id, cw20_address,
+                ask_price
+            )
         }
         _ => Err(ContractError::CustomError {
             val: "Invalid Cw721HookMsg".to_string(),
